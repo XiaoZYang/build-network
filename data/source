@@ -1,0 +1,6 @@
+Sale#commodity#id;Sale#commodity_detail#commodity_id;Sale#store#id;Sale#image#id,Sale#image#url,Sale#image#commodity_id;Sale#comment#id,Sale#comment#from_user_id,Sale#comment#to_user_id,Sale#comment#commodity_id;Sale#user#id	1000
+Sale#comment#from_user_id;Sale#user#id;Sale#comment#to_user_id;Sale#user#id	800
+Sale#commodity#id,Sale#user#id;Sale#collection#commodity_id,Sale#collection#user_id;Sale#user_behavior#user_id	900
+Sale#commodity#id,Sale#user#id;Sale#order#commodity_id;Sale#user_behavior#user_id	1000
+Sale#order#id;Sale#payment#order_id	1000
+Sale#commodity#store_id;Sale#collection#store_id	1000
