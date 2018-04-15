@@ -145,6 +145,21 @@ def min_cut(G, factor=0.5):
     return (Gr, Gn)
 
 
+def process(schema_list, log_sequence, whitelist, blacklist, window_size=5, min_node_num=2, ratio=0.5):
+    G = nx.DiGRaph()
+
+    for seq in log_sequence:
+        add_edges(G, seq, whitelist, blacklist, window_size)
+
+    refine(G)
+
+    (Gr, Gn) = min_cut(G)
+
+
+def evaluate(expected_edges, actual_edges):
+    # recall = ...
+    # precision = ...
+
 def main():
     #logfile = 'development.log'
     logfile = 'data/generated-log'
