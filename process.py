@@ -157,8 +157,16 @@ def process(schema_list, log_sequence, whitelist, blacklist, window_size=5, min_
 
 
 def evaluate(expected_edges, actual_edges):
+    total = len(expected_edges)
+
     # recall = ...
+    found = len(actual_edges)
+    recall = 1.0 if found >= total else float(found) / total
+
     # precision = ...
+    correct = len([(f, t) for (f, t) in actual_edges if (f, t) in expected_edges])
+    precision = float(correct) / found
+    return (recall, precision)
 
 def main():
     #logfile = 'development.log'
