@@ -58,7 +58,9 @@ def add_edges(G, log_seq, whitelist={}, blacklist={}, window_size=5):
                             if '{}-{}'.format(f, t) in blacklist:
                                 continue
 
+                            #print(t)
                             dt, tt, ct = t.split('#')
+
 
                             if '{}-{}'.format(cf, ct) in blacklist:
                                 continue
@@ -96,8 +98,8 @@ def draw(G, savepath):
     nx.draw(G, pos, with_labels=True)
 
 
-    edge_labels = nx.get_edge_attributes(G, 'weight')
-    nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, font_size=8)
+    #edge_labels = nx.get_edge_attributes(G, 'weight')
+    #nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, font_size=8)
     plt.savefig(savepath)
     plt.clf()
 
@@ -145,15 +147,20 @@ def min_cut(G, factor=0.5):
     return (Gr, Gn)
 
 
-def process(schema_list, log_sequence, whitelist, blacklist, window_size=5, min_node_num=2, ratio=0.5):
-    G = nx.DiGRaph()
+def build_graph(
+     schema_list,
+     log_sequence,
+     whitelist={},
+     blacklist={},
+     window_size=5):
+    G = nx.DiGraph()
 
     for seq in log_sequence:
         add_edges(G, seq, whitelist, blacklist, window_size)
 
-    refine(G)
+    #refine(G)
 
-    (Gr, Gn) = min_cut(G)
+    return G
 
 
 def evaluate(expected_edges, actual_edges):
@@ -161,12 +168,41 @@ def evaluate(expected_edges, actual_edges):
 
     # recall = ...
     found = len(actual_edges)
+    if found == 0:
+        return (0.0, 0.0, 0.0)
     recall = 1.0 if found >= total else float(found) / total
 
     # precision = ...
     correct = len([(f, t) for (f, t) in actual_edges if (f, t) in expected_edges])
     precision = float(correct) / found
-    return (recall, precision)
+
+    f1 = (2 * precision * recall) / (precision + recall)
+    return (round(precision, 4), round(recall,4), round(f1, 4))
+
+
+def expected_graph():
+    G = nx.DiGraph()
+
+    G.add_edge('User#user#id', 'Sale#comment#from_user_id')
+    G.add_edge('User#user#id', 'Sale#comment#to_user_id')
+    G.add_edge('User#user#id', 'User#user_bahavior#user_id')
+    G.add_edge('User#user#id', 'Delivery#express#user_id')
+
+    G.add_edge('Sale#store#id', 'Sale#commodity#store_id')
+
+    G.add_edge('Sale#order#id', 'Sale#payment#order_id')
+    G.add_edge('Sale#order#id', 'Delivery#express#order_id')
+
+    G.add_edge('Sale#commodity#id', 'Sale#commodity_detail#commodity_id')
+    G.add_edge('Sale#commodity#id', 'Sale#order#commodity_id')
+    G.add_edge('Sale#commodity#id', 'Sale#comment#commodity_id')
+
+    G.add_edge('Sale#image#id', 'Sale#commodity_detail#image_id')
+
+    G.add_edge('Sale#comment#id', 'Sale#commodity#comment_id')
+
+
+    return G
 
 def main():
     #logfile = 'development.log'
@@ -176,29 +212,52 @@ def main():
         schema_list = [line.strip() for line in handle]
 
     #segments = split_requests(logfile)
-    log_segments = generate_log_seq(logfile)
+    log_segments = list(generate_log_seq(logfile))
 
     whitelist = {
-        'Sale#comment#from_user_id-Sale#user#id',
-        'Sale#comment#to_user_id-Sale#user#id',
+        'User#user#id-Sale#comment#from_user_id',
+        'User#user#id-Sale#comment#to_user_id',
     }
     blacklist = {
-        'id-id'
+        'id-id',
+        'user_id-user_id'
     }
 
-    G = nx.DiGraph()
-    #add_nodes(G, schema_list)
-    for seq in generate_log_seq(logfile):
-        add_edges(G, seq, whitelist, blacklist)
+    #G = nx.DiGraph()
+    ##add_nodes(G, schema_list)
+    #for seq in generate_log_seq(logfile):
+    #    add_edges(G, seq, whitelist, blacklist)
 
-    refine(G)
+    #refine(G)
+    expected_edges = expected_graph().edges
+
+    window_size_list = [3, 5, 7, 9]
+    whitelists = [{}, whitelist]
+    blacklists = [{}, blacklist]
+
+    x = []
+    y = []
+
+    for ws in window_size_list:
+        for wl in whitelists:
+            for bl in blacklists:
+                G = build_graph(schema_list, log_segments, wl, bl, ws)
+                (precision, recall, f1) = evaluate(expected_edges, G.edges)
+                print('wl = {}, bl = {}, ws = {}, precision = {} recall = {} f1 = {}'.format(
+                    wl, bl, ws, precision, recall, f1
+                ))
+                # print(evaluate(expected_edges, G.edges))
+
+
+
 
     draw(G, 'graph-before.png')
 
-    (Gr, Gn) = min_cut(G)
+    # minimum cut
+    # (Gr, Gn) = min_cut(G)
 
-    draw(Gr, 'graph-sub-r.png')
-    draw(Gn, 'graph-sub-n.png')
+    # draw(Gr, 'graph-sub-r.png')
+    # draw(Gn, 'graph-sub-n.png')
 
 
 if __name__ == '__main__':
